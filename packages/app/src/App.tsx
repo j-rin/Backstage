@@ -1,4 +1,4 @@
-import { CostInsightsPage } from '@backstage-community/plugin-cost-insights';
+// import { CostInsightsPage } from '@backstage-community/plugin-cost-insights';
 import { Navigate, Route } from 'react-router-dom';
 import { googleAuthApiRef } from '@backstage/core-plugin-api';
 import { apiDocsPlugin, ApiExplorerPage } from '@backstage/plugin-api-docs';
@@ -93,7 +93,6 @@ const routes = (
       </TechDocsAddons>
     </Route>
     <Route path="/create" element={<ScaffolderPage />} />
-    <Route path="/cost-insights" element={<CostInsightsPage />} />
     <Route path="/api-docs" element={<ApiExplorerPage />} />
     <Route
       path="/catalog-import"

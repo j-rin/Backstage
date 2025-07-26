@@ -1,5 +1,3 @@
-import { costInsightsApiRef } from '@backstage-community/plugin-cost-insights';
-import { CostInsightsClient } from './path/to/file';
 import {
   ScmIntegrationsApi,
   scmIntegrationsApiRef,
@@ -16,6 +14,7 @@ export const apis: AnyApiFactory[] = [
     api: scmIntegrationsApiRef,
     deps: { configApi: configApiRef },
     factory: ({ configApi }) => ScmIntegrationsApi.fromConfig(configApi),
+    
   }),
   ScmAuth.createDefaultApiFactory(),
 ];
