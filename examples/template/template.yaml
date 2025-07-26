@@ -1,0 +1,220 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+# https://backstage.io/docs/features/software-catalog/descriptor-format#kind-template
+kind: Template
+metadata:
+  name: example-nodejs-template
+  title: Example Node.js Template
+  description: An example template for the scaffolder that creates a simple Node.js service
+spec:
+  owner: user:guest
+  type: service
+
+  # These parameters are used to generate the input form in the frontend, and are
+  # used to gather input data for the execution of the template.
+  parameters:
+    - title: Fill in some steps
+      required:
+        - name
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Unique name of the component
+          ui:autofocus: true
+          ui:options:
+            rows: 5
+    - title: Choose a location
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  # These steps are executed in the scaffolder backend, using data that we gathered
+  # via the parameters above.
+  steps:
+    # Each step executes an action, in this case one templates files into the working directory.
+    - id: fetch-base
+      name: Fetch Base
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+
+    # This step publishes the contents of the working directory to GitHub.
+    # If you or your organization prefer another default branch name over 'main'
+    # you can change that here.
+    - id: publish
+      name: Publish
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: This is ${{ parameters.name }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: 'main'
+
+    # The final step is to register our new component in the catalog.
+    - id: register
+      name: Register
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+
+  # Outputs are displayed to the user after a successful execution of the template.
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
+
+
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-environment
+  title: Create Environment in Kubernetes
+  description: Creates a new environment namespace and deploys application using GitLab pipeline
+spec:
+  owner: platform-engineering
+  type: service
+
+  parameters:
+    - title: Provide Environment Details
+      required:
+        - hostSubdomain
+        - envName
+      properties:
+        repoUrl:
+          title: Infra Repo url
+          type: string
+          description: "Infra repo url"
+          default: "gitlab.com?repo=Infra-automation&owner=booking-app9690602"
+          readOnly: true
+        infraBranchName:
+          title: Job Branch Name
+          type: string
+          description: "Infra job branch name"
+          default: "feature/env-creation"
+          readOnly: true
+        baseDomainName:
+          title: Base Domain Name
+          type: string
+          description: "Base domain name for your env"
+          default: ".eks.ilama.xyz"
+          readOnly: true
+        hostSubdomain:
+          title: Host Subdomain
+          type: string
+          ui:autofocus: true
+          description: "E.g., app1-, test-, etc."
+        envName:
+          title: Environment Name
+          type: string
+          description: "E.g., dev01, stage, prod"
+        timeToLive:
+          title: TTL
+          type: string
+          description: "Environment will survive for eg: 1 day"
+          default: 5m
+          enum:
+            - 5m
+            - 1h
+            - 4h
+            - 7h
+            - 12h
+            - 1d
+            - 3d
+            - 5d
+            - 7d
+  steps:
+    - id: trigger-pipeline
+      name: Trigger GitLab Pipeline
+      action: gitlab:pipeline:trigger
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        projectId: 71525746
+        tokenDescription: backstage pipeline token
+        branch: ${{ parameters.infraBranchName }}
+        # These will be passed as variables
+        variables:  
+          HOST_SUBDOMAIN: ${{ parameters.hostSubdomain }} 
+          ENV_NAME: ${{ parameters.envName }}
+    - id: check-pipeline
+      name: Creating new environment, sit back and relax
+      action: custom:gitlab-pipeline-status
+      input:
+        pipelineUrl: ${{ steps['trigger-pipeline'].output.pipelineUrl }}
+        projectId: 'booking-app9690602/Infra-automation'
+  output:
+    links:
+      - title: Pipline Link
+        url: ${{ steps['trigger-pipeline'].output.pipelineUrl }}
+      - title: Application URL
+        url: https://${{ parameters.hostSubdomain }}${{ parameters.baseDomainName }}
+
+
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: decomm-environment
+  title: Decommission of Environment in Kubernetes
+  description: Decommision of long lived environments in kubernetes
+spec:
+  owner: platform-engineering
+  type: service
+
+  parameters:
+    - title: Provide Environment Details
+      required:
+        - envName
+      properties:
+        repoUrl:
+          title: Infra Repo url
+          type: string
+          description: "Infra repo url"
+          default: "gitlab.com?repo=Infra-automation&owner=booking-app9690602"
+          readOnly: true
+        infraBranchName:
+          title: Job Branch Name
+          type: string
+          description: "Infra job branch name"
+          default: "feature/env-creation"
+          readOnly: true
+        envName:
+          title: Environment Name
+          type: string
+          description: "E.g., dev01, stage, prod"
+  steps:
+    - id: trigger-pipeline
+      name: Trigger GitLab Pipeline
+      action: gitlab:pipeline:trigger
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        projectId: 71525746
+        tokenDescription: backstage pipeline token
+        branch: ${{ parameters.infraBranchName }}
+        # These will be passed as variables
+        variables:  
+          ENV_DECOMM: "true" 
+          ENV_NAME: ${{ parameters.envName }}
+    - id: check-pipeline
+      name: Destroying environment, sit back and relax
+      action: custom:gitlab-pipeline-status
+      input:
+        pipelineUrl: ${{ steps['trigger-pipeline'].output.pipelineUrl }}
+        projectId: 'booking-app9690602/Infra-automation'
+  output:
+    links:
+      - title: Pipline Link
+        url: ${{ steps['trigger-pipeline'].output.pipelineUrl }}
