@@ -11,6 +11,8 @@ jobs:
       image_tag: backstage:$(date +%s)
     steps:
     - uses: actions/checkout@v4
+    - name: Generate image tag
+      run: echo "tag=backstage:$(date +%s)" >> "$GITHUB_OUTPUT"
     - name: Build the Docker image
       run: docker build . --tag jerinpaul/$image_tag
     - name: Login to DockerHub
