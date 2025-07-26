@@ -7,12 +7,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env: 
-      image_tag: backstage:$(date +%s)
     steps:
     - uses: actions/checkout@v4
     - name: Generate image tag
-      run: echo $image_tag >> "$GITHUB_OUTPUT"
+      run: |
+        echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+        echo "image_tag=${{ secrets.DOCKERUSER }}/backstage:$SHORT_SHA" >> "$GITHUB_ENV"
     - name: Build the Docker image
       run: docker build . --tag jerinpaul/$image_tag
     - name: Login to DockerHub
