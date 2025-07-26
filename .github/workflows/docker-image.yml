@@ -7,7 +7,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env: 
+      image_tag: ${{ secrets.DOCKERUSER }}backstage:$(date +%s)
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag jerinpaul/backstage:$(date +%s)
+      run: docker build . --file Dockerfile --tag $image_tag
+    - name: Login to DockerHub
+      run : docker login -u ${{ secrets.DOCKERUSER }} -p ${{ secrets.DOCKERPASS }}
+    - name: Push to DockerHub
+      run: docker push $image_tag
