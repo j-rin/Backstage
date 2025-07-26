@@ -9,9 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Generate image tag
+    - name: Generate Tag
       run: |
-        echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+        SHORT_SHA=$(git rev-parse --short HEAD)
+        echo "SHORT_SHA=$SHORT_SHA" >> "$GITHUB_ENV"
         echo "image_tag=${{ secrets.DOCKERUSER }}/backstage:$SHORT_SHA" >> "$GITHUB_ENV"
     - name: Build the Docker image
       run: docker build . --tag $image_tag
